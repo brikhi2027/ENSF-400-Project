@@ -5,8 +5,9 @@ pipeline{
     environment {
         IMAGE_NAME = 'ensf400-project'
         TAG = 'latest'
-        DOCKER_USER = 'sslaquerre07'
-        DOCKER_PASS = 'Pucky1120!'
+        CREDENTIALS_ID = 'dockerhub-creds'
+        DOCKER_USER = 'bhavna2309'
+        DOCKER_PASS = 'Calgary2309'
     }
 
     stages{
@@ -25,7 +26,7 @@ pipeline{
             steps {
                 script {
                     // Use DockerHub credentials (the ID you gave it in Jenkins)
-                    withCredentials([usernamePassword(credentialsId: '59a71b5b-9cc7-4d75-b0ba-449b52a4ee27', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                    withCredentials([usernamePassword(credentialsId: CREDENTIALS_ID, usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
                         // Log in to DockerHub using the credentials
                         sh '''
                             echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
@@ -55,6 +56,21 @@ pipeline{
             }
         }
 
+        // Security Analysis with OWASP's "DependencyCheck"
+        stage('Dependency Check') {
+            agent {
+                docker {
+                    image 'gradle:7.6.1-jdk11'
+                }
+            }
+            steps {
+                script {
+                    // Run OWASP Dependency-Check for security analysis
+                    sh './gradlew dependencyCheckAnalyze'
+                }
+            }
+        }
+
         //Generate and save JavaDocs as an artifact
         stage('Generate JavaDocs') {
             agent {
@@ -74,7 +90,7 @@ pipeline{
         stage('Deploy Application') {
             steps {
                 script {
-                    withCredentials([usernamePassword(credentialsId: '59a71b5b-9cc7-4d75-b0ba-449b52a4ee27', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                    withCredentials([usernamePassword(credentialsId: CREDENTIALS_ID, usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
                         sh '''
                             echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
                             docker pull $DOCKER_USER/$IMAGE_NAME:$TAG
